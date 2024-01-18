@@ -7,17 +7,19 @@
     state: present
 
 - name: Add Kubernetes apt key.
-  apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    state: present
+  shell: "curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg >/dev/null 2>&1"
   register: add_repository_key
   ignore_errors: "{{ kubernetes_apt_ignore_key_error }}"
 
-- name: Add Kubernetes repository.
-  apt_repository:
-    repo: "{{ kubernetes_apt_repository }}"
-    state: present
-    update_cache: true
+- name: Create directory /etc/apt/keyrings
+  shell: "sudo mkdir -p -m 755 /etc/apt/keyrings"
+
+- name: Add Kubernetes repository to sources.list
+  shell: 'echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list'
+
+- name: Update APT repositories cache
+  apt:
+    update_cache: yes
 
 - name: Add Kubernetes apt preferences file to pin a version.
   template:
